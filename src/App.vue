@@ -112,7 +112,7 @@ export default Vue.extend({
       { title: 'Sign Out' }
     ],
     productSelectionEnabled: false,
-    newapp: true
+    newapp: localStorage.getItem('app--hide-new-app') !== 'true'
   }),
 
   methods: {
@@ -133,6 +133,9 @@ export default Vue.extend({
   watch: {
     $route (to: Route) {
       this.updateProductSelection(to)
+    },
+    newapp (value: boolean) {
+      localStorage.setItem('app--hide-new-app', (!value).toString())
     }
   }
 })
