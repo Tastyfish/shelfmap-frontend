@@ -23,6 +23,22 @@ const routes: Array<RouteConfig> = [
     component: () => import(/* webpackChunkName: "about" */ '@/views/About.vue')
   },
   {
+    path: '/signin',
+    name: 'signin',
+    // route level code-splitting
+    // this generates a separate chunk (about.[hash].js) for this route
+    // which is lazy-loaded when the route is visited.
+    component: () => import(/* webpackChunkName: "signin" */ '@/views/Signin.vue')
+  },
+  {
+    path: '/create',
+    name: 'create-account',
+    // route level code-splitting
+    // this generates a separate chunk (about.[hash].js) for this route
+    // which is lazy-loaded when the route is visited.
+    component: () => import(/* webpackChunkName: "create-account" */ '@/views/CreateAccount.vue')
+  },
+  {
     path: '/admin',
     name: 'admin-site',
     component: () => import(/* webpackChunkName: "admin-site" */ '@/views/AdminSite.vue')

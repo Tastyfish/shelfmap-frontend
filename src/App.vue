@@ -43,15 +43,18 @@
           <v-btn
             fab color="secondary" small elevation="1"
             v-bind="attrs"
-            v-on="on">
-            GU
+            v-on="on"
+            :title="$store.state.email"
+          >
+            {{ $store.state.email.substring(0, 2) }}
           </v-btn>
         </template>
         <v-list>
           <v-list-item
-            v-for="(item, index) in avatarItems"
+            v-for="(item, index) in $store.state.signedIn ? signedInItems : signedOutItems"
             :key="index"
             link
+            :to="item.to"
           >
             <v-list-item-title>{{ item.title }}</v-list-item-title>
           </v-list-item>
@@ -108,8 +111,11 @@ export default Vue.extend({
       { title: 'Shelves', icon: 'mdi-bookshelf', to: '/admin/shelf' },
       { title: 'Products', icon: 'mdi-package', to: '/admin/product' }
     ],
-    avatarItems: [
-      { title: 'Sign Out' }
+    signedOutItems: [
+      { title: 'Sign in', to: '/signin' }
+    ],
+    signedInItems: [
+      { title: 'Sign out', to: '/signout' }
     ],
     productSelectionEnabled: false,
     newapp: localStorage.getItem('app--hide-new-app') !== 'true'
