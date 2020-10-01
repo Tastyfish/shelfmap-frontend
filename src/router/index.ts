@@ -44,6 +44,16 @@ const routes: Array<RouteConfig> = [
     component: () => import(/* webpackChunkName: "admin-site" */ '@/views/AdminSite.vue')
   },
   {
+    path: '/admin/shelf',
+    name: 'admin-shelf',
+    component: () => import(/* webpackChunkName: "admin-shelf" */ '@/views/AdminShelf.vue')
+  },
+  {
+    path: '/admin/product',
+    name: 'admin-product',
+    component: () => import(/* webpackChunkName: "admin-product" */ '@/views/AdminProduct.vue')
+  },
+  {
     path: '*',
     component: PageNotFoundErrorPage
   }

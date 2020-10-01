@@ -1,21 +1,25 @@
 <template>
-  <div class="ma-6">
+  <div style="max-width: 600px; margin: auto">
     <v-container>
-      <div class="text-h2">Site Setup</div>
+      <v-row>
+        <v-col align="center">
+          <div class="text-h2">Site Setup</div>
+        </v-col>
+      </v-row>
     </v-container>
     <v-form cols="2"
       ref="form" v-model="valid"
     >
       <v-container>
         <v-row>
-          <v-col cols="6">
+          <v-col cols="12" sm="6">
             <v-text-field :counter="15" label="Site name"
               v-model="name"
               :rules="nameRules"
               required
             />
           </v-col>
-          <v-col cols="6">
+          <v-col cols="12" sm="6">
             <v-file-input label="Map image" prepend-icon="mdi-map" show-size
               v-model="mapImage"
               accept="image/png, image/jpeg, image/bmp"
@@ -26,7 +30,7 @@
         </v-row>
         <v-row>
           <v-col>
-            <v-btn type="submit" color="primary"
+            <v-btn type="submit" color="primary" block
               :disabled="!valid"
               @click.prevent="submit"
             >
@@ -48,7 +52,7 @@
         <v-col>
           <v-dialog v-model="deleteSiteDialog" width="500">
             <template #activator="{ on, attrs }">
-              <v-btn color="secondary"
+              <v-btn color="secondary" block
                 v-bind="attrs" v-on="on"
               >
                 Delete site data
@@ -57,7 +61,7 @@
 
             <v-card>
               <v-card-title>
-                Delete site?
+                Delete site data?
               </v-card-title>
 
               <v-card-text>
