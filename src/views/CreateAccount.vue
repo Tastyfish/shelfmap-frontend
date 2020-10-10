@@ -67,10 +67,10 @@ import { Vue, Component } from 'vue-property-decorator'
 import store from '@/store'
 import PasswordField from '@/components/PasswordField.vue'
 import { AxiosResponse, AxiosError } from 'axios'
-import { plainAxios } from '@/api/backend'
+import { signUp } from '@/api/backend/user'
 
-function isError (value: AxiosError | AxiosResponse): value is AxiosError {
-  return (value as AxiosError).toJSON !== undefined
+function isAxiosError (value: AxiosError | Error): value is AxiosError {
+  return (value as AxiosError).response !== undefined
 }
 
 @Component({
@@ -115,34 +115,29 @@ export default class CreateAccount extends Vue {
   }
 
   checkedSignedIn () {
-    if (this.$store.state.signedIn) {
+    if (this.$store.getters.signedIn) {
       this.$router.replace('/')
     }
   }
 
   signupSuccessful (response: AxiosResponse): void {
-    console.log(response)
-
-    if (!response.data.csrf) {
-      this.signupFailed(response)
-      return
-    }
-
     this.$store.commit('signin', { email: this.email, csrf: response.data.csrf })
     this.error = ''
     this.$router.replace('/')
   }
 
-  signupFailed (msg: AxiosResponse | AxiosError) {
-    const response = isError(msg) ? msg?.response : msg
+  signupFailed (error: AxiosError | Error) {
+    const message = isAxiosError(error) ? error.response?.data?.errors?.[0]?.detail.toString() || error.response?.data.toString() : error.message
+    console.log(error)
+    if (isAxiosError(error)) { console.log(error?.response) }
+    console.log(message)
 
-    this.error = (response?.data?.error) || 'Something went wrong'
+    this.error = message || 'Could not create account.'
     this.$store.commit('signout')
   }
 
   createAccount (): void {
-    /* eslint-disable @typescript-eslint/camelcase */
-    plainAxios.post('/signup', { email: this.email, password: this.password, password_confirmation: this.confirmPassword })
+    signUp(this.email, this.password, this.confirmPassword)
       .then(response => this.signupSuccessful(response))
       .catch(error => this.signupFailed(error))
   }

@@ -29,7 +29,7 @@
           </v-btn>
         </v-col>
       </v-row>
-      <v-row>
+      <v-row v-if="$store.state.accountCreationEnabled">
         <v-col>
           <v-btn color="secondary" text block
             :to="{ name: 'create-account' }"
@@ -68,10 +68,10 @@ import { Vue, Component } from 'vue-property-decorator'
 import store from '@/store'
 import PasswordField from '@/components/PasswordField.vue'
 import { AxiosResponse, AxiosError } from 'axios'
-import { plainAxios } from '@/api/backend'
+import { signIn } from '@/api/backend/user'
 
-function isError (value: AxiosError | AxiosResponse): value is AxiosError {
-  return (value as AxiosError).toJSON !== undefined
+function isAxiosError (value: AxiosError | Error): value is AxiosError {
+  return (value as AxiosError).response !== undefined
 }
 
 @Component({
@@ -106,30 +106,26 @@ export default class Signin extends Vue {
   }
 
   checkSignedIn () {
-    if (this.$store.state.signedIn) {
+    if (this.$store.getters.signedIn) {
       this.$router.replace('/')
     }
   }
 
-  signinFailed (msg: AxiosError | AxiosResponse) {
-    const response = isError(msg) ? msg?.response : msg
+  signinFailed (error: AxiosError | Error) {
+    const message = isAxiosError(error) ? error.response?.data?.errors?.[0]?.detail.toString() || error.response?.data.toString() : error.message
 
-    this.error = response?.data?.error || `Could not sign you in: Error ${response?.status}`
+    this.error = message || 'Could not sign you in'
     this.$store.commit('signout')
   }
 
   signinSuccessful (response: AxiosResponse) {
-    if (!response.data.csrf) {
-      this.signinFailed(response)
-      return
-    }
-    this.$store.commit('signin', { email: this.email, csrf: response.data.csrf })
+    this.$store.commit('signin', { email: this.email, jwt: response.headers.authorization })
     this.error = ''
     this.$router.replace('/')
   }
 
   signin () {
-    plainAxios.post('/signin', { email: this.email, password: this.password })
+    signIn(this.email, this.password)
       .then((response: AxiosResponse) => this.signinSuccessful(response))
       .catch((error: AxiosError) => this.signinFailed(error))
   }

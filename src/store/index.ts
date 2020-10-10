@@ -1,47 +1,106 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
+import { readSiteInfo, updateSiteInfo, SiteInfo } from '@/api/backend/site'
+import { readCurrentUser } from '@/api/backend/user'
 
 Vue.use(Vuex)
 
-export default new Vuex.Store({
-  state: {
-    email: localStorage.email ?? 'guest',
-    signedIn: localStorage.authSignedIn === 'true' || false,
-    csrfToken: localStorage.authCSRF,
+interface StoreState {
+  email?: string;
+  jwt?: string;
 
-    siteName: 'Untitled',
-    mapImageName: 'blank.png'
+  siteName?: string;
+  accountCreationEnabled: boolean;
+  mapImageName?: string;
+}
+
+interface TileInfo {
+  x: number;
+  y: number;
+  z: number;
+  tile: Blob;
+}
+
+export default new Vuex.Store<StoreState>({
+  state: {
+    email: undefined,
+    jwt: undefined,
+
+    siteName: undefined,
+    accountCreationEnabled: false,
+    mapImageName: undefined
+  },
+  getters: {
+    signedIn: state => !!state.email
   },
   mutations: {
-    setSiteName (state, value) {
+    setSiteName (state, value: string) {
       state.siteName = value
     },
-    setMapImageMeta (state, image) {
+    setAccountCreationEnabled (state, value: boolean) {
+      state.accountCreationEnabled = value
+    },
+    setMapImageMeta (state, image: { name: string }) {
       state.mapImageName = image.name
-
-      const imagePromise = createImageBitmap(image)
     },
-    setMapImageTile (state, { x, y, z, tile }) {
-      console.log(`tile: ${x}, ${y}, ${z}`)
+    setMapImageTile (state, { x, y, z, tile }: TileInfo) {
+      console.log(`tile: ${x}, ${y}, ${z}: ${tile}`)
     },
-    signin (state, { email, csrf }) {
+    signin (state, { email, jwt }: { email: string; jwt: string }) {
       state.email = email
-      state.signedIn = true
-      state.csrfToken = csrf
-      localStorage.email = email
-      localStorage.authSignedIn = true
-      localStorage.authCSRF = csrf
+      state.jwt = jwt
+      localStorage.setItem('jwt', jwt)
     },
     signout (state) {
-      state.email = 'guest'
-      state.signedIn = false
-      state.csrfToken = null
-      delete localStorage.email
-      delete localStorage.authSignedIn
-      delete localStorage.authCSRF
+      state.email = undefined
+      state.jwt = undefined
+      localStorage.removeItem('jwt')
     }
   },
   actions: {
+    setSiteNameSync ({ commit }, value: string): Promise<string> {
+      // Actually update site name on server
+      /* eslint-disable @typescript-eslint/camelcase */
+      return updateSiteInfo({ site_name: value })
+        .then(() => (
+          new Promise((resolve) => {
+            commit('setSiteName', value)
+            resolve(value)
+          })
+        ))
+    },
+    setMapImageMetaSync ({ commit }, value: string): Promise<string> {
+      // Actually map image data on server
+      /* eslint-disable @typescript-eslint/camelcase */
+      return updateSiteInfo({ map_name: value })
+        .then(() => (
+          new Promise((resolve) => {
+            commit('setMapImageMeta', value)
+            resolve(value)
+          })
+        ))
+    },
+    resync ({ commit, state }): Promise<SiteInfo> {
+      return readSiteInfo()
+        .then(site => (
+          new Promise((resolve) => {
+            commit('setSiteName', site.site_name)
+            commit('setAccountCreationEnabled', site['account_creation_enabled?'])
+            commit('setMapImageMeta', { name: site.map_name })
+
+            if (localStorage.getItem('jwt')) {
+              commit('signin', { email: undefined, jwt: localStorage.getItem('jwt') })
+              readCurrentUser()
+                .then(user => {
+                  console.log(user)
+                  commit('signin', { email: user.email, jwt: state.jwt })
+                })
+            }
+
+            resolve(site)
+          })
+        ))
+    }
   },
   modules: {
   }
