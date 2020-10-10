@@ -8,7 +8,8 @@
       </v-row>
     </v-container>
     <v-form cols="2"
-      ref="form" v-model="valid"
+      v-model="valid"
+      @submit.prevent="submit"
     >
       <v-container>
         <v-row>
@@ -16,7 +17,8 @@
             <v-text-field :counter="15" label="Site name"
               v-model="name"
               :rules="nameRules"
-              required
+              :placeholder="$store.state.siteName"
+              :loading="!$store.state.siteName && 'warning'"
             />
           </v-col>
           <v-col cols="12" sm="6">
@@ -24,7 +26,14 @@
               v-model="mapImage"
               accept="image/png, image/jpeg, image/bmp"
               :placeholder="$store.state.mapImageName"
-              required
+              :loading="!$store.state.mapImageName && 'warning'"
+            />
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col>
+            <v-checkbox label="Enable account creation"
+              v-model="accountCreationEnabled"
             />
           </v-col>
         </v-row>
@@ -32,7 +41,6 @@
           <v-col>
             <v-btn type="submit" color="primary" block
               :disabled="!valid"
-              @click.prevent="submit"
             >
               Update
             </v-btn>
@@ -117,11 +125,25 @@
         </v-btn>
       </template>
     </v-snackbar>
+    <v-snackbar v-model="errorSnackbar" color="error">
+      <v-icon>mdi-alert-circle</v-icon>
+      {{ errorSnackbarText }}
+
+      <template #action="{ attrs }">
+        <v-btn
+          text
+          v-bind="attrs"
+          @click="errorSnackbar = false"
+        >
+          Close
+        </v-btn>
+      </template>
+    </v-snackbar>
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator'
+import { Component, Vue, Watch } from 'vue-property-decorator'
 import store from '@/store'
 
 @Component({
@@ -134,38 +156,59 @@ export default class AdminSite extends Vue {
 
   private name = ''
   private nameRules = [
-    (v: string) => !!v || 'Name is required',
-    (v: string) => (v && v.length <= 15) || 'Name must be less than 15 characters'
+    (v: string) => (v?.length > 0) || 'Name required.',
+    (v: string) => (v?.length <= 15) || 'Name must be less than 15 characters'
   ]
 
   private mapImage: File | null = null
 
+  private accountCreationEnabled = false
+
   private deleteSiteDialog = false
   private deleteSnackbar = false
 
+  private errorSnackbarText = ''
+  private errorSnackbar = false
+
   mounted (): void {
     this.name = this.$store.state.siteName
+    this.accountCreationEnabled = this.$store.state.accountCreationEnabled
   }
 
   submit (): void {
     if (this.valid) {
-      this.$store.commit('setSiteName', this.name)
-      this.snackbarText = 'Name updated'
-      this.updateSnackbar = true
-
-      if (this.mapImage) {
-        this.$store.commit('setMapImageMeta', this.mapImage)
-
-        this.$store.commit('setMapImageTile', {
-          x: 0,
-          y: 0,
-          z: 0,
-          tile: URL.createObjectURL(this.mapImage)
+      this.$store.dispatch('setSiteInfoSync', { siteName: this.name, accountCreationEnabled: this.accountCreationEnabled, mapImageName: this.mapImage?.name || undefined })
+        .then(() => {
+          this.snackbarText = 'Site settings updated updated'
+          this.updateSnackbar = true
+        })
+        .catch(error => {
+          this.errorSnackbarText = error.toString()
+          this.errorSnackbar = true
         })
 
-        this.snackbarText = 'Name & map updated'
-        this.updateSnackbar = true
-      }
+      // if (this.mapImage) {
+      //   this.$store.dispatch('setMapImageMetaSync', this.mapImage)
+      //     .catch(error => {
+      //       this.errorSnackbar = true
+      //       this.errorSnackbarText = error.toString()
+      //     })
+      //     .then(success => {
+      //       this.snackbarText = 'Name & map updated'
+      //       this.updateSnackbar = true
+      //     })
+      //
+      //   this.$store.dispatch('setMapImageTileSync', {
+      //     x: 0,
+      //     y: 0,
+      //     z: 0,
+      //     tile: URL.createObjectURL(this.mapImage)
+      //   })
+      //     .catch(error => {
+      //       this.errorSnackbar = true
+      //       this.errorSnackbarText = error.toString()
+      //     })
+      // }
     }
   }
 
@@ -173,6 +216,13 @@ export default class AdminSite extends Vue {
     this.deleteSiteDialog = false
 
     this.deleteSnackbar = true
+  }
+
+  @Watch('$store.state.siteName')
+  onSiteNameChange (value: string): void {
+    if (this.name === undefined) {
+      this.name = value
+    }
   }
 }
 </script>

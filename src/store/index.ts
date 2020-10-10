@@ -21,6 +21,12 @@ interface TileInfo {
   tile: Blob;
 }
 
+interface CleanSiteInfo {
+  siteName?: string;
+  accountCreationEnabled?: boolean;
+  mapImageName?: string;
+}
+
 export default new Vuex.Store<StoreState>({
   state: {
     email: undefined,
@@ -58,48 +64,39 @@ export default new Vuex.Store<StoreState>({
     }
   },
   actions: {
-    setSiteNameSync ({ commit }, value: string): Promise<string> {
+    setSiteInfoSync ({ commit }, { siteName, accountCreationEnabled, mapImageName }: CleanSiteInfo): Promise<void> {
       // Actually update site name on server
       /* eslint-disable @typescript-eslint/camelcase */
-      return updateSiteInfo({ site_name: value })
-        .then(() => (
-          new Promise((resolve) => {
-            commit('setSiteName', value)
-            resolve(value)
-          })
-        ))
-    },
-    setMapImageMetaSync ({ commit }, value: string): Promise<string> {
-      // Actually map image data on server
-      /* eslint-disable @typescript-eslint/camelcase */
-      return updateSiteInfo({ map_name: value })
-        .then(() => (
-          new Promise((resolve) => {
-            commit('setMapImageMeta', value)
-            resolve(value)
-          })
-        ))
+      return updateSiteInfo({ site_name: siteName, 'account_creation_enabled?': accountCreationEnabled, map_name: mapImageName })
+        .then(() => {
+          if (siteName) {
+            commit('setSiteName', siteName)
+          }
+          if (accountCreationEnabled) {
+            commit('setAccountCreationEnabled', accountCreationEnabled)
+          }
+          if (mapImageName) {
+            commit('setMapImageMeta', mapImageName)
+          }
+        })
     },
     resync ({ commit, state }): Promise<SiteInfo> {
       return readSiteInfo()
-        .then(site => (
-          new Promise((resolve) => {
-            commit('setSiteName', site.site_name)
-            commit('setAccountCreationEnabled', site['account_creation_enabled?'])
-            commit('setMapImageMeta', { name: site.map_name })
+        .then(site => {
+          commit('setSiteName', site.site_name)
+          commit('setAccountCreationEnabled', site['account_creation_enabled?'])
+          commit('setMapImageMeta', { name: site.map_name })
 
-            if (localStorage.getItem('jwt')) {
-              commit('signin', { email: undefined, jwt: localStorage.getItem('jwt') })
-              readCurrentUser()
-                .then(user => {
-                  console.log(user)
-                  commit('signin', { email: user.email, jwt: state.jwt })
-                })
-            }
+          if (localStorage.getItem('jwt')) {
+            commit('signin', { email: undefined, jwt: localStorage.getItem('jwt') })
+            readCurrentUser()
+              .then(user => {
+                commit('signin', { email: user.email, jwt: state.jwt })
+              })
+          }
 
-            resolve(site)
-          })
-        ))
+          return site
+        })
     }
   },
   modules: {
