@@ -35,7 +35,16 @@
       <transition name="fade-ps" mode="out-in">
         <v-autocomplete light hide-details solo rounded dense class="mx-3"
           label="Find a product..." v-if="productSelectionEnabled" />
-        <v-toolbar-title dark class="flex-grow-1" v-else>Shelfmap&mdash;{{ $store.state.siteName }}</v-toolbar-title>
+        <div class="d-flex flex-grow-1" v-else>
+          <v-skeleton-loader dark class="flex-grow-1"
+            v-if="!$store.state.siteName" type="heading"
+          />
+          <v-toolbar-title dark class="flex-grow-1"
+            v-else
+          >
+            Shelfmap&mdash;{{ $store.state.siteName }}
+          </v-toolbar-title>
+        </div>
       </transition>
 
       <v-menu offset-y nudge-bottom="8">
@@ -46,12 +55,19 @@
             v-on="on"
             :title="$store.state.email"
           >
-            {{ $store.state.email.substring(0, 2) }}
+            <template
+              v-if="$store.getters.signedIn"
+            >
+              {{ $store.state.email.substring(0, 2) }}
+            </template>
+            <v-icon v-else>
+              mdi-account
+            </v-icon>
           </v-btn>
         </template>
         <v-list>
           <v-list-item
-            v-for="(item, index) in $store.state.signedIn ? signedInItems : signedOutItems"
+            v-for="(item, index) in $store.getters.signedIn ? signedInItems : signedOutItems"
             :key="index"
             link
             :to="item.to"
@@ -92,59 +108,64 @@
 </template>
 
 <script lang="ts">
-import Vue from 'vue'
+import { Component, Vue, Watch } from 'vue-property-decorator'
 import { Route } from 'vue-router'
 import store from '@/store'
 
-export default Vue.extend({
-  name: 'App',
-  store,
+@Component({
+  store
+})
+export default class App extends Vue {
+  private drawer = false
+  private navItems = [
+    { title: 'Product Finder', icon: 'mdi-map', to: '/' },
+    { title: 'About', icon: 'mdi-information', to: '/about' },
+    { divider: true },
+    { header: 'Admin' },
+    { title: 'Site Setup', icon: 'mdi-tune', to: '/admin' },
+    { title: 'Shelves', icon: 'mdi-bookshelf', to: '/admin/shelf' },
+    { title: 'Products', icon: 'mdi-package', to: '/admin/product' }
+  ]
 
-  data: () => ({
-    drawer: false,
-    navItems: [
-      { title: 'Product Finder', icon: 'mdi-map', to: '/' },
-      { title: 'About', icon: 'mdi-information', to: '/about' },
-      { divider: true },
-      { header: 'Admin' },
-      { title: 'Site Setup', icon: 'mdi-tune', to: '/admin' },
-      { title: 'Shelves', icon: 'mdi-bookshelf', to: '/admin/shelf' },
-      { title: 'Products', icon: 'mdi-package', to: '/admin/product' }
-    ],
-    signedOutItems: [
-      { title: 'Sign in', to: '/signin' }
-    ],
-    signedInItems: [
-      { title: 'Sign out', to: '/signout' }
-    ],
-    productSelectionEnabled: false,
-    newapp: localStorage.getItem('app--hide-new-app') !== 'true'
-  }),
+  private signedOutItems = [
+    { title: 'Sign in', to: '/signin' }
+  ]
 
-  methods: {
-    popAvatar (): void {
-      alert('hi')
-    },
-    updateProductSelection (to: Route): void {
-      // Update product selection based on route meta value
-      this.productSelectionEnabled =
-        to.matched.some(record => record.meta.productSelectionEnabled)
-    }
-  },
+  private signedInItems = [
+    { title: 'Sign out', to: '/signout' }
+  ]
+
+  private productSelectionEnabled = false
+  private newapp = localStorage.getItem('app--hide-new-app') !== 'true'
+
+  popAvatar (): void {
+    alert('hi')
+  }
+
+  updateProductSelection (to: Route): void {
+    // Update product selection based on route meta value
+    this.productSelectionEnabled =
+      to.matched.some(record => record.meta.productSelectionEnabled)
+  }
+
+  created () {
+    this.$store.dispatch('resync')
+  }
 
   mounted () {
     this.updateProductSelection(this.$route)
-  },
-
-  watch: {
-    $route (to: Route) {
-      this.updateProductSelection(to)
-    },
-    newapp (value: boolean) {
-      localStorage.setItem('app--hide-new-app', (!value).toString())
-    }
   }
-})
+
+  @Watch('$route')
+  watchRoute (to: Route) {
+    this.updateProductSelection(to)
+  }
+
+  @Watch('newapp')
+  watchNewapp (value: boolean) {
+    localStorage.setItem('app--hide-new-app', (!value).toString())
+  }
+}
 </script>
 
 <style>
