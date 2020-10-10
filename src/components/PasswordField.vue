@@ -3,6 +3,7 @@
     :name="name"
     :label="label"
     :value="value"
+    :rules="rules"
     @input="$emit('input', $event)"
     :type="revealPassword ? 'text' : 'password'"
     :append-icon="revealPassword ? 'mdi-eye' : 'mdi-eye-off'"
@@ -21,5 +22,6 @@ export default class PasswordField extends Vue {
   @Prop({ default: 'password' }) readonly name!: string
   @Prop({ default: 'Password' }) readonly label!: string
   @Prop({ default: '' }) readonly value!: string
+  @Prop() readonly rules?: ((v: string) => boolean | string)[]
 }
 </script>
