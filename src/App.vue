@@ -13,7 +13,7 @@
       </v-list-item>
       <v-divider />
       <v-list dense nav>
-        <template v-for="(item, index) in navItems">
+        <template v-for="(item, index) in $store.getters.signedIn ? navItems.concat(adminNavItems) : navItems">
           <v-list-item link exact :key="index" v-if="item.title" :to="item.to">
             <v-list-item-icon>
               <v-icon>{{ item.icon }}</v-icon>
@@ -119,7 +119,10 @@ export default class App extends Vue {
   private drawer = false
   private navItems = [
     { title: 'Product Finder', icon: 'mdi-map', to: '/' },
-    { title: 'About', icon: 'mdi-information', to: '/about' },
+    { title: 'About', icon: 'mdi-information', to: '/about' }
+  ]
+
+  private adminNavItems = [
     { divider: true },
     { header: 'Admin' },
     { title: 'Site Setup', icon: 'mdi-tune', to: '/admin' },
